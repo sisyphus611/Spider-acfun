@@ -1,6 +1,8 @@
 import requests
 from urllib.parse import urlencode
 import time
+import os
+import csv
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -41,7 +43,7 @@ def get_info(json):
                 view_count = info.get('view_count')
                 comment_count = info.get('comment_count')
                 banana_count = info.get('banana_count')
-                item = {
+                yield {
                     'totalPage': totalPage,
                     'channel_name': channel_name,
                     'realm_name': realm_name,
@@ -52,11 +54,26 @@ def get_info(json):
                     'comment_count': comment_count,
                     'banana_count': banana_count
                 }
-                return item
+
 
 def save_data(item):
-    # 数据保存，待完善
-    print(item)
+    # 数据保存到csv文件
+
+    if not os.path.exists(item.get('channel_name')):
+        os.mkdir(item.get('channel_name'))
+    try:
+        file_csv_path = '{0}/{1}.{2}'.format(item.get('channel_name'), item.get('realm_name'), '.csv')
+        if not os.path.exists(file_csv_path):
+            with open(file_csv_path, 'a', encoding='utf-8') as csvfile:
+                fieldnames = ['totalPage', 'channel_name', 'realm_name', 'title', 'id', 'username',
+                              'view_count', 'comment_count', 'banana_count']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writerow(item)
+        else:
+            print('下载完毕', file_csv_path)
+    except:
+        pass
+
 
 def main():
     # 利用每个分区第一页获取该分区总页数并构造分页函数，遍历整个文章区
@@ -68,9 +85,10 @@ def main():
             sum = item.get('totalPage')
             for pageNo in range(1, int(sum)):
                 json = get_channelurl(pageNo, realmIds)
-                info = get_info(json)
-                save_data(info)
-        except AttributeError :
+                for info in get_info(json):
+                    print(info)
+                    save_data(info)
+        except AttributeError:
             pass
 
 
