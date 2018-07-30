@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 import time
 import os
 import csv
+import pymongo
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -42,8 +43,8 @@ def get_info(json):
                 username = info.get('username')
                 view_count = info.get('view_count')
                 comment_count = info.get('comment_count')
-                banana_count = info.get('banana_count')
-                yield {
+                # banana_count = info.get('banana_count')
+                item =  {
                     'totalPage': totalPage,
                     'channel_name': channel_name,
                     'realm_name': realm_name,
@@ -51,14 +52,22 @@ def get_info(json):
                     'id': id,
                     'username': username,
                     'view_count': view_count,
-                    'comment_count': comment_count,
-                    'banana_count': banana_count
+                    'comment_count': comment_count
+                    # 'banana_count': banana_count
                 }
-
+                save_data(item)
 
 def save_data(item):
+    # 保存到Mongodb数据库
+    client = pymongo.MongoClient(host='localhost', port=27017)
+    db = client['spiders']
+    try:
+        if db['acfun'].insert(item):
+            print('存储成功')
+    except Exception:
+        print('存储失败')
+    '''
     # 数据保存到csv文件
-
     if not os.path.exists(item.get('channel_name')):
         os.mkdir(item.get('channel_name'))
     try:
@@ -73,7 +82,7 @@ def save_data(item):
             print('下载完毕', file_csv_path)
     except:
         pass
-
+    '''
 
 def main():
     # 利用每个分区第一页获取该分区总页数并构造分页函数，遍历整个文章区
@@ -85,9 +94,7 @@ def main():
             sum = item.get('totalPage')
             for pageNo in range(1, int(sum)):
                 json = get_channelurl(pageNo, realmIds)
-                for info in get_info(json):
-                    print(info)
-                    save_data(info)
+                get_info(json)
         except AttributeError:
             pass
 
