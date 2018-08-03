@@ -1,6 +1,7 @@
 import requests
 from urllib.parse import urlencode
 import pymongo
+from multiprocessing import Pool
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -87,18 +88,21 @@ def save_data(item):
             print('下载完毕', file_csv_path)
     '''
 
-def main():
+def main(realmIds):
     # 利用每个分区第一页获取该分区总页数并构造分页函数，遍历整个文章区
-    for realmIds in range(1, 25):
-        json_start = get_channelurl(1, realmIds)
-        totalPage = get_pageNo(json_start)
-        try:
-            for pageNo in range(1, totalPage):
-                json = get_channelurl(pageNo, realmIds)
-                get_info(json)
-        except TypeError:
-            pass
+    json_start = get_channelurl(1, realmIds)
+    totalPage = get_pageNo(json_start)
+    try:
+        for pageNo in range(1, totalPage):
+            json = get_channelurl(pageNo, realmIds)
+            get_info(json)
+    except TypeError:
+        pass
 
 
 if __name__ == '__main__':
-    main()
+    pool = Pool(processes=4)
+    groups = ([realmIds for realmIds in range(1, 25)])
+    pool.map(main, groups)
+    pool.close()
+    pool.join()
